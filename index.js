@@ -84,8 +84,16 @@ async function run() {
             * app.get('/booking:id') //got a specific booking
             * app.post('/booking') // add a new booking
             * app.patch('/booking:id') // update a specific booking
+            * app.put('/booking/:id') //upsert ==> update(if exist) or insert(if not exist)
             * app.delete('/booking:id') // delete a specific booking
         */
+
+        app.get('/booking', async (req, res) => {
+            const patient = req.query.patient;
+            const query = { patient: patient };
+            const bookings = await bookingCollection.find(query).toArray();
+            res.send(bookings);
+        })
 
         app.post('/booking', async (req, res) => {
             const booking = req.body;
