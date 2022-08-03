@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const app = express()
 const port = process.env.PORT || 5000;
-const stripe = require("stripe")(process.env.STRIPE_KEY);
+const stripe = require('stripe')(process.env.STRIPE_KEY);
 
 app.use(cors());
 app.use(express.json());
@@ -23,6 +23,7 @@ function verifyJWT(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
         return res.status(401).send({ message: 'UnAuthorized access' })
+
     }
     const token = authHeader.split(' ')[1];
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
@@ -59,6 +60,7 @@ async function run() {
         const bookingCollection = client.db('doctor-portal').collection('bookings');
         const userCollection = client.db('doctor-portal').collection('users');
         const doctorCollection = client.db('doctor-portal').collection('doctors');
+        const paymentCollection = client.db('doctor-portal').collection('payments');
 
 
         const verifyAdmin = async (req, res, next) => {
@@ -76,6 +78,7 @@ async function run() {
             const service = req.body;
             const price = service.price;
             const amount = price * 100;
+            console.log(amount)
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: 'usd',
@@ -193,6 +196,23 @@ async function run() {
             }
             const result = await bookingCollection.insertOne(booking);
             return res.send({ success: true, result });
+        })
+
+        app.patch('/booking/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const payment = req.body;
+            const filter = { _id: ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId,
+                }
+            };
+            const result = await paymentCollection.insertOne(payment);
+            const updatedBooking = await bookingCollection.updateOne(filter, updatedDoc);
+
+            res.send(updatedDoc)
+
         })
 
 
